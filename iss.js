@@ -2,60 +2,52 @@
 
 const request = require('request');
 
-/**
- * Makes a single API request to retrieve the user's IP address.
- * Input:
- *   - A callback (to pass back an error or the IP string)
- * Returns (via Callback):
- *   - An error, if any (nullable)
- *   - The IP address as a string (null if error). Example: "162.245.144.188"
- */
-// const fetchMyIP = function(callback) {
-//   // use request to fetch IP address from JSON API
+const fetchMyIP = function(callback) {
+  // use request to fetch IP address from JSON API
 
-//   request('http://api.ipify.org?format=json', (error, response, body) => {
-//     if(error) {
-//       callback(error, null);
-//       return;
-//     }
+  request('http://api.ipify.org?format=json', (error, response, body) => {
+    if(error) {
+      callback(error, null);
+      return;
+    }
 
-//     //if non-200 status, assume server error
-//     if (response.statusCode !== 200) {
-//     const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
-//     callback(Error(msg), null);
-//     return;
-//     }
+    //if non-200 status, assume server error
+    if (response.statusCode !== 200) {
+    const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
+    callback(Error(msg), null);
+    return;
+    }
 
-//     const ip = JSON.parse(body).ip;
-//     callback(null, ip);
-//   });
-// };
+    const ip = JSON.parse(body).ip;
+    callback(null, ip);
+  });
+};
 
-// const fetchCoordsByIP = function(ip, callback) {
-//   request(`http://ipwho.is/${ip}`, (error, response, body) => {
-//     if (error) {
-//       callback(error, null);
-//       return;
-//     }
+const fetchCoordsByIP = function(ip, callback) {
+  request(`http://ipwho.is/${ip}`, (error, response, body) => {
+    if (error) {
+      callback(error, null);
+      return;
+    }
     
-//     const data = JSON.parse(body);
+    const data = JSON.parse(body);
 
-//     if (!data.success) {
-//       const message = `Error: Success status was ${data.success}. Server message says: ${data.message} when fecthing for IP ${data.ip}`;
-//       callback(Error(message), null);
-//       return;
-//     }
+    if (!data.success) {
+      const message = `Error: Success status was ${data.success}. Server message says: ${data.message} when fecthing for IP ${data.ip}`;
+      callback(Error(message), null);
+      return;
+    }
 
-//     const coords = {
-//       latitude: data.latitude,
-//       longitude: data.longitude
-//     };
+    const coords = {
+      latitude: data.latitude,
+      longitude: data.longitude
+    };
 
-//     // const {latitude, longitude} = data;
+    // const {latitude, longitude} = data;
 
-//     callback(null, coords);
-//   });
-// };
+    callback(null, coords);
+  });
+};
 
 const fetchISSFlyOverTimes = function(coords, callback) {
   const API = `https://iss-flyover.herokuapp.com/json/?lat=${coords.latitude}&lon=${coords.longitude}`; 
@@ -78,4 +70,26 @@ const fetchISSFlyOverTimes = function(coords, callback) {
   });
 };
 
-module.exports = { fetchISSFlyOverTimes };
+const nextISSTimesForMyLocation = function(callback) {
+  fetchMyIP((error,ip) => {
+    if(error) {
+      return callback(error, null);
+    }
+    
+    fetchCoordsByIP(ip, (error, coords) => {
+      if (error) {
+        return callback(error, null);
+      }
+
+      fetchISSFlyOverTimes(coords, (error, passes) => {
+        if (error) {
+          return callback(error, null);
+        }
+
+        callback(null, passes)
+      })
+    })
+  })
+};
+
+module.exports = { nextISSTimesForMyLocation };
